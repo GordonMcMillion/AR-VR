@@ -1,50 +1,87 @@
 <html>
   <head>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-physics-system@v4.0.0/dist/aframe-physics-system.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-super-hands-component@4.0.1/dist/aframe-super-hands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.0.1/dist/aframe-ar.min.js"></script>
   </head>
   <body>
-    <a-scene>
-      <a-box position="-1 0.5 -3" rotation="0 45 0" color="#4CC3D9"></a-box>
-      <a-sphere position="0 1.25 -5" radius=".2" color="#EF2D5E"></a-sphere>
-      <a-cylinder
-        position="1 0.75 -3"
-        radius="0.2"
-        height="4"
-        color="green"
-      ></a-cylinder>
-      <a-cylinder
-        position="1 0.75 -6"
-        radius="0.2"
-        height="4"
-        color="blue"
-      ></a-cylinder>
-      <a-cylinder
-        position="-2 0.75 -6"
-        radius="0.2"
-        height="4"
-        color="blue"
-      ></a-cylinder>
-      <a-cylinder
-        position="-2 0.75 -3"
-        radius="0.2"
-        height="4"
-        color="blue"
-      ></a-cylinder>
-      <a-plane
-        position="-.25 -1 -4"
-        rotation="-90 0 0"
-        width="4"
-        height="4"
-        color="#7BC8A4"
-      ></a-plane>
-      <a-plane
-        position="-.25 4 -4"
-        rotation="-90 0 0"
-        width="4"
-        height="4"
-        color="#7BC8A4"
-      ></a-plane>
+    <a-scene embedded arjs="sourceType: webcam;" physics="debug: false">
+      
+      <!-- Ground Plane -->
+      <a-plane position="0 -1 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4" static-body></a-plane>
+
+      <!-- Sky -->
       <a-sky color="#ECECEC"></a-sky>
+
+      <!-- Camera for AR mode -->
+      <a-camera id="camera" position="0 1.6 0"></a-camera>
+
+      <!-- Ball Spawner -->
+      <script>
+        let hoveredBall = null;
+
+        function spawnBall() {
+          let sceneEl = document.querySelector('a-scene');
+          let ballEl = document.createElement('a-sphere');
+          ballEl.setAttribute('position', `${Math.random() * 4 - 2} ${Math.random() * 2 + 1} -10`);
+          ballEl.setAttribute('radius', '0.2');
+          ballEl.setAttribute('color', getRandomColor());
+          ballEl.setAttribute('dynamic-body', 'shape: sphere; restitution: 0.6;'); // Adjust restitution for bouncing
+          ballEl.setAttribute('velocity', `${Math.random() * 2 - 1} 0 10`);
+          sceneEl.appendChild(ballEl);
+
+          // Add hover and click event listener to the ball
+          ballEl.addEventListener('mouseenter', function () {
+            hoveredBall = ballEl;
+          });
+
+          ballEl.addEventListener('mouseleave', function () {
+            if (hoveredBall === ballEl) {
+              hoveredBall = null;
+            }
+          });
+
+          ballEl.addEventListener('click', function (event) {
+            if (event.originalEvent.button === 0) {
+              let velocity = ballEl.body.velocity;
+              // Apply force in the opposite direction of the current velocity
+              let force = velocity.clone().multiplyScalar(-2); // Adjust multiplier for the strength of the force
+              ballEl.body.applyForce(force);
+            }
+          });
+
+          // Destroy ball after 10 seconds if it is not hit
+          setTimeout(() => {
+            if (ballEl.parentNode) {
+              ballEl.parentNode.removeChild(ballEl);
+            }
+          }, 10000);
+        }
+
+        // Function to repeatedly spawn balls
+        function startBallSpawner() {
+          setInterval(spawnBall, 2000);  // Adjust timing for how often balls spawn
+        }
+
+        // Start spawning balls when the scene is loaded
+        document.querySelector('a-scene').addEventListener('loaded', startBallSpawner);
+
+        // Utility function to generate a random color
+        function getRandomColor() {
+          return '#'+(Math.random()*0xFFFFFF<<0).toString(16);
+        }
+
+        // Handle keypress for bouncing the ball
+        window.addEventListener('keydown', function (event) {
+          if (event.key === 's' && hoveredBall) {
+            let velocity = hoveredBall.body.velocity;
+            // Apply force in the opposite direction of the current velocity
+            let force = velocity.clone().multiplyScalar(-2); // Adjust multiplier for the strength of the force
+            hoveredBall.body.applyForce(force);
+          }
+        });
+      </script>
     </a-scene>
   </body>
 </html>
